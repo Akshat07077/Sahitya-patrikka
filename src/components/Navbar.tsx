@@ -1,0 +1,106 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+import { apiFetch, getToken, setToken } from '@/lib/api';
+import Link from 'next/link';
+
+type Me = { user: { id: string; firstName: string; lastName: string; email: string; role: string } };
+
+export default function Navbar() {
+  const [me, setMe] = useState<Me['user'] | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    apiFetch<Me>(`/api/auth/me`).then((r) => setMe(r.user)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  function logout() {
+    setToken('');
+    localStorage.removeItem('aa_token');
+    setMe(null);
+    window.location.href = '/';
+  }
+
+  return (
+    <nav className={`w-full sticky top-0 z-50 transition-all duration-300 ${
+      isScrolled ? 'bg-white shadow-md' : 'bg-white/95 backdrop-blur-sm border-b border-gray-200'
+    }`}>
+      <div className="container-custom px-4 lg:px-6">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2 group">
+            <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <span className="text-white font-display font-bold text-xl">स</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display text-xl font-bold text-primary-800 leading-tight">
+                Sahitya Sanskriti Patrika
+              </span>
+              <span className="text-xs text-gray-600 font-medium">Literary & Cultural Journal</span>
+            </div>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium">
+            <Link href="/articles" className="text-gray-700 hover:text-primary-700 transition-colors">
+              Articles
+            </Link>
+            <Link href="/editorial-board" className="text-gray-700 hover:text-primary-700 transition-colors">
+              Editorial Board
+            </Link>
+            <Link href="/contact" className="text-gray-700 hover:text-primary-700 transition-colors">
+              Contact
+            </Link>
+            <Link href="/submit" className="text-gray-700 hover:text-primary-700 transition-colors">
+              Submit Article
+            </Link>
+          </div>
+
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-3">
+            {me ? (
+              <>
+                {['ADMIN', 'EDITOR'].includes(me.role) && (
+                  <Link href="/admin" className="hidden sm:inline-block text-sm text-gray-700 hover:text-primary-700 transition-colors">
+                    Admin
+                  </Link>
+                )}
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary-50 rounded-full">
+                  <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-semibold">
+                    {me.firstName[0]}{me.lastName[0]}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{me.firstName}</span>
+                </div>
+                <button onClick={logout} className="btn btn-outline text-sm">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="btn btn-outline text-sm hidden sm:inline-flex">
+                  Login
+                </Link>
+                <Link href="/auth/register" className="btn btn-primary text-sm">
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+
+
