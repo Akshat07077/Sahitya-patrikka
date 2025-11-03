@@ -87,10 +87,10 @@ export default function Footer() {
         <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-600">
           <p>© {currentYear} Sahitya Sanskriti Patrika. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <Link href="" className="hover:text-primary-700 transition-colors">
+            <Link href="/" className="hover:text-primary-700 transition-colors">
               Privacy Policy
             </Link>
-            <Link href="" className="hover:text-primary-700 transition-colors">
+            <Link href="/" className="hover:text-primary-700 transition-colors">
               Terms of Service
             </Link>
           </div>
