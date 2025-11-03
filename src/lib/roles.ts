@@ -7,7 +7,7 @@ export function requireRole(req: Request, roles: Array<'ADMIN' | 'EDITOR'>) {
     const token = getAuthTokenFromRequest(req as any);
     if (!token) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
     const payload = verifyToken(token);
-    if (!roles.includes(payload.role)) {
+    if (!roles.includes(payload.role as 'ADMIN' | 'EDITOR')) {
       return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
     }
     return { payload };

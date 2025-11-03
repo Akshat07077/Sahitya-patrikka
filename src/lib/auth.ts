@@ -11,7 +11,7 @@ export type JwtPayload = {
   exp?: number;
 };
 
-export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>, expiresIn: string | number = '7d') {
+export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>, expiresIn: SignOptions['expiresIn'] = '7d') {
   const options: SignOptions = { expiresIn };
   return jwt.sign(payload, JWT_SECRET, options);
 }
