@@ -1,7 +1,7 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_SECRET: string = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 export type JwtPayload = {
   id: string;
@@ -11,8 +11,9 @@ export type JwtPayload = {
   exp?: number;
 };
 
-export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>, expiresIn = '7d') {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>, expiresIn: string | number = '7d') {
+  const options: SignOptions = { expiresIn };
+  return jwt.sign(payload, JWT_SECRET, options);
 }
 
 export function verifyToken(token: string): JwtPayload {
