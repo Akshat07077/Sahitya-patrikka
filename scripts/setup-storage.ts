@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// Load environment variables
-dotenv.config({ path: resolve(__dirname, '../.env.local') });
-dotenv.config({ path: resolve(__dirname, '../.env') });
+// Load environment variables from .env.local (preferred) or .env
+config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), '.env') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -87,11 +87,17 @@ async function setupStorageBuckets() {
       }
 
       // Create the bucket
-      const { data, error } = await supabase.storage.createBucket(bucket.name, {
+      // Supabase Storage API: public and fileSizeLimit are supported
+      const bucketOptions: any = {
         public: bucket.public,
-        allowedMimeTypes: bucket.allowedMimeTypes,
-        fileSizeLimit: bucket.fileSizeLimit,
-      });
+      };
+      
+      // Add file size limit if specified
+      if (bucket.fileSizeLimit) {
+        bucketOptions.fileSizeLimit = bucket.fileSizeLimit;
+      }
+
+      const { data, error } = await supabase.storage.createBucket(bucket.name, bucketOptions);
 
       if (error) {
         console.error(`❌ Error creating bucket "${bucket.name}": ${error.message}`);
