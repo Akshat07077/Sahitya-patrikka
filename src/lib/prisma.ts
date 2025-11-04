@@ -11,6 +11,37 @@ if (!databaseUrl) {
   );
 }
 
+// Helper function to URL-encode special characters in password
+// Supabase connection strings with special characters like $, @, # need proper encoding
+function encodePasswordInUrl(url: string): string {
+  // Match the connection string pattern: postgresql://user:password@host:port/db
+  // Extract password part and encode special characters
+  const urlPattern = /^(postgresql:\/\/[^:]+):([^@]+)@(.+)$/;
+  const match = url.match(urlPattern);
+  
+  if (match) {
+    const [, userPart, password, rest] = match;
+    // If password contains special characters that need encoding
+    if (password && (password.includes('$') || password.includes('@') || password.includes('#') || password.includes('&'))) {
+      // Decode first in case it's partially encoded, then encode fully
+      let decodedPassword = password;
+      try {
+        decodedPassword = decodeURIComponent(password);
+      } catch {
+        // If decode fails, use original
+        decodedPassword = password;
+      }
+      // Encode the password
+      const encodedPassword = encodeURIComponent(decodedPassword);
+      return `${userPart}:${encodedPassword}@${rest}`;
+    }
+  }
+  return url;
+}
+
+// Auto-encode password if it contains special characters
+databaseUrl = encodePasswordInUrl(databaseUrl);
+
 // For Supabase in serverless environments, configure connection pooling
 const isSupabase = databaseUrl.includes('supabase.co') || databaseUrl.includes('pooler.supabase.com');
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
