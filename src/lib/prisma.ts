@@ -12,39 +12,50 @@ if (!databaseUrl) {
 }
 
 // For Supabase in serverless environments, configure connection pooling
-const isSupabase = databaseUrl.includes('supabase.co');
+const isSupabase = databaseUrl.includes('supabase.co') || databaseUrl.includes('pooler.supabase.com');
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
 if (isSupabase && isProduction) {
-  // If using direct connection (port 5432), we need to ensure proper connection management
-  // For serverless, Prisma handles connection pooling, but we should limit connections
-  if (databaseUrl.includes(':5432')) {
-    // Add connection parameters optimized for serverless
-    const separator = databaseUrl.includes('?') ? '&' : '?';
-    // connection_limit=1 ensures one connection per serverless function instance
-    // connect_timeout=10 sets a reasonable timeout
-    databaseUrl = `${databaseUrl}${separator}connection_limit=1&connect_timeout=10`;
-    console.log('✅ Configured Supabase connection for serverless environment');
-  } else if (databaseUrl.includes(':6543')) {
-    // Port 6543 is the transaction pooler
-    // Note: Transaction pooler doesn't support prepared statements
-    // Prisma will handle this automatically, but we ensure connection limits
+  // Check if using pooler (pooler.supabase.com)
+  const isPooler = databaseUrl.includes('pooler.supabase.com');
+  
+  if (isPooler && databaseUrl.includes(':6543')) {
+    // Using Supabase pooler on port 6543
+    // IMPORTANT: Must be SESSION mode (not Transaction mode) for Prisma compatibility
+    // Transaction mode doesn't support prepared statements
     const separator = databaseUrl.includes('?') ? '&' : '?';
     if (!databaseUrl.includes('connection_limit')) {
       databaseUrl = `${databaseUrl}${separator}connection_limit=1&connect_timeout=10`;
     }
-    console.log('✅ Added connection parameters for Supabase transaction pooler');
+    
+    // Verify it's using the pooler format (postgres.[ref] format indicates Session mode)
+    if (databaseUrl.includes('postgres.lwkoghlxvjelprprpigs') || databaseUrl.includes('postgres.')) {
+      console.log('✅ Using Supabase Session mode pooler (supports prepared statements)');
+    } else {
+      console.warn('⚠️  WARNING: Verify you are using SESSION mode pooler, not Transaction mode');
+      console.warn('   Transaction mode does not support prepared statements and will cause Prisma errors');
+      console.warn('   Get Session mode URL from: Supabase Dashboard > Settings > Database > Connection Pooling > Session mode');
+    }
+  } else if (databaseUrl.includes(':5432')) {
+    // Direct connection (port 5432)
+    const separator = databaseUrl.includes('?') ? '&' : '?';
+    databaseUrl = `${databaseUrl}${separator}connection_limit=1&connect_timeout=10`;
+    console.log('✅ Configured Supabase direct connection for serverless environment');
   }
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+// Configure Prisma client
+// For Supabase transaction pooler, we need to handle prepared statement conflicts
+const prismaConfig: any = {
   datasources: {
     db: {
       url: databaseUrl,
     },
   },
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-});
+};
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient(prismaConfig);
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
