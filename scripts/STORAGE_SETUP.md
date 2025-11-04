@@ -8,7 +8,7 @@ This guide will help you set up the required storage buckets for the application
 
 1. Make sure you have your Supabase credentials in `.env.local`:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLI_SUPABASE_URL=https://your-project.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    ```
 
@@ -100,7 +100,7 @@ After setting up the buckets, verify they exist:
 
 ### Error: "Missing environment variables"
 - Make sure `.env.local` contains:
-  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLI_SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
 
 ### Error: "Permission denied"

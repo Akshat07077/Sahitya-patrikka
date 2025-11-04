@@ -14,7 +14,7 @@ export async function saveUpload(file: File, subdir: string): Promise<string> {
   if (isProduction) {
     if (!supabaseAdmin) {
       throw new Error(
-        'Supabase Storage is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.'
+        'Supabase Storage is not configured. Please set NEXT_PUBLI_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.'
       );
     }
 
