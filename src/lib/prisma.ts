@@ -7,20 +7,33 @@ let databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error(
     'DATABASE_URL environment variable is not set. ' +
-    'For Supabase in production, use the connection pooler URL (port 6543) or add ?pgbouncer=true'
+    'For Supabase in production, enable Connection Pooling in Supabase Dashboard and use the pooled connection string.'
   );
 }
 
-// For Supabase in serverless environments, automatically use connection pooling
+// For Supabase in serverless environments, configure connection pooling
 const isSupabase = databaseUrl.includes('supabase.co');
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
 if (isSupabase && isProduction) {
-  // Convert direct connection (port 5432) to pooled connection (port 6543)
-  if (databaseUrl.includes(':5432') && !databaseUrl.includes('pgbouncer=true') && !databaseUrl.includes(':6543')) {
-    // Replace port 5432 with 6543 for connection pooling
-    databaseUrl = databaseUrl.replace(':5432', ':6543');
-    console.log('✅ Automatically converted Supabase connection to use connection pooling (port 6543)');
+  // If using direct connection (port 5432), we need to ensure proper connection management
+  // For serverless, Prisma handles connection pooling, but we should limit connections
+  if (databaseUrl.includes(':5432')) {
+    // Add connection parameters optimized for serverless
+    const separator = databaseUrl.includes('?') ? '&' : '?';
+    // connection_limit=1 ensures one connection per serverless function instance
+    // connect_timeout=10 sets a reasonable timeout
+    databaseUrl = `${databaseUrl}${separator}connection_limit=1&connect_timeout=10`;
+    console.log('✅ Configured Supabase connection for serverless environment');
+  } else if (databaseUrl.includes(':6543')) {
+    // Port 6543 is the transaction pooler
+    // Note: Transaction pooler doesn't support prepared statements
+    // Prisma will handle this automatically, but we ensure connection limits
+    const separator = databaseUrl.includes('?') ? '&' : '?';
+    if (!databaseUrl.includes('connection_limit')) {
+      databaseUrl = `${databaseUrl}${separator}connection_limit=1&connect_timeout=10`;
+    }
+    console.log('✅ Added connection parameters for Supabase transaction pooler');
   }
 }
 
