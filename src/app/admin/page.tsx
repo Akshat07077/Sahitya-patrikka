@@ -118,25 +118,37 @@ export default function AdminPage() {
 
   async function calculateStats() {
     try {
-      const [pending, approved, rejected, published] = await Promise.all([
-        apiFetch<{ articles: ArticleRow[] }>(`/api/admin/articles?status=PENDING&limit=1`),
-        apiFetch<{ articles: ArticleRow[] }>(`/api/admin/articles?status=APPROVED&limit=1`),
-        apiFetch<{ articles: ArticleRow[] }>(`/api/admin/articles?status=REJECTED&limit=1`),
-        apiFetch<{ articles: ArticleRow[] }>(`/api/admin/articles?status=PUBLISHED&limit=1`),
-      ]);
-
-      // Note: These are approximations. For real stats, you'd need a dedicated stats endpoint
+      const statsData = await apiFetch<{
+        totalArticles: number;
+        pendingArticles: number;
+        approvedArticles: number;
+        rejectedArticles: number;
+        publishedArticles: number;
+        totalUsers: number;
+        totalContacts: number;
+      }>('/api/admin/stats');
+      
       setStats({
-        totalArticles: articles.length,
-        pendingArticles: pending.articles?.length || 0,
-        approvedArticles: approved.articles?.length || 0,
-        rejectedArticles: rejected.articles?.length || 0,
-        publishedArticles: published.articles?.length || 0,
-        totalUsers: 0, // Would need users endpoint
-        totalContacts: 0, // Would need contacts endpoint
+        totalArticles: statsData.totalArticles || 0,
+        pendingArticles: statsData.pendingArticles || 0,
+        approvedArticles: statsData.approvedArticles || 0,
+        rejectedArticles: statsData.rejectedArticles || 0,
+        publishedArticles: statsData.publishedArticles || 0,
+        totalUsers: statsData.totalUsers || 0,
+        totalContacts: statsData.totalContacts || 0,
       });
-    } catch (e) {
-      // Silently fail stats calculation
+    } catch (e: any) {
+      console.error('Failed to load stats:', e);
+      // Set zero stats on error
+      setStats({
+        totalArticles: 0,
+        pendingArticles: 0,
+        approvedArticles: 0,
+        rejectedArticles: 0,
+        publishedArticles: 0,
+        totalUsers: 0,
+        totalContacts: 0,
+      });
     }
   }
 

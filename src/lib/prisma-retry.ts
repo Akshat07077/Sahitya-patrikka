@@ -4,8 +4,8 @@
  */
 export async function withRetry<T>(
   queryFn: () => Promise<T>,
-  maxRetries = 3,
-  delay = 100
+  maxRetries = 5,
+  delay = 150
 ): Promise<T> {
   let lastError: any;
   
@@ -19,11 +19,13 @@ export async function withRetry<T>(
       const isPreparedStatementError = 
         error?.message?.includes('prepared statement') ||
         error?.code === '42P05' ||
-        (error?.meta?.code === '42P05');
+        (error?.meta?.code === '42P05') ||
+        error?.cause?.code === '42P05';
       
       if (isPreparedStatementError && attempt < maxRetries - 1) {
-        // Wait before retrying (allows connection pool to reset)
-        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+        // Exponential backoff with jitter to avoid thundering herd
+        const backoffDelay = delay * Math.pow(2, attempt) + Math.random() * 50;
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
         continue;
       }
       

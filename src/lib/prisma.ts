@@ -21,19 +21,31 @@ function encodePasswordInUrl(url: string): string {
   
   if (match) {
     const [, userPart, password, rest] = match;
+    
+    // Check if password is already encoded (contains %)
+    const isAlreadyEncoded = password.includes('%');
+    
     // If password contains special characters that need encoding
-    if (password && (password.includes('$') || password.includes('@') || password.includes('#') || password.includes('&'))) {
-      // Decode first in case it's partially encoded, then encode fully
-      let decodedPassword = password;
+    if (password && !isAlreadyEncoded && (password.includes('$') || password.includes('@') || password.includes('#') || password.includes('&') || password.includes('+'))) {
+      // Encode the password
+      const encodedPassword = encodeURIComponent(password);
+      const newUrl = `${userPart}:${encodedPassword}@${rest}`;
+      console.log('🔐 Password encoded in connection string');
+      return newUrl;
+    }
+    
+    // If already encoded, decode and re-encode to ensure consistency
+    if (isAlreadyEncoded) {
       try {
-        decodedPassword = decodeURIComponent(password);
+        const decodedPassword = decodeURIComponent(password);
+        const reEncodedPassword = encodeURIComponent(decodedPassword);
+        if (reEncodedPassword !== password) {
+          console.log('🔐 Re-encoded password for consistency');
+          return `${userPart}:${reEncodedPassword}@${rest}`;
+        }
       } catch {
         // If decode fails, use original
-        decodedPassword = password;
       }
-      // Encode the password
-      const encodedPassword = encodeURIComponent(decodedPassword);
-      return `${userPart}:${encodedPassword}@${rest}`;
     }
   }
   return url;
@@ -70,11 +82,16 @@ if (isSupabase && isProduction) {
     }
     
     // Verify it's using the pooler format (postgres.[ref] format indicates Session mode)
+    // IMPORTANT: The format "postgres.[ref]" with "pooler.supabase.com" can be EITHER Session or Transaction mode
+    // You MUST verify in Supabase Dashboard which mode you're using
     if (databaseUrl.includes('postgres.lwkoghlxvjelprprpigs') || databaseUrl.includes('postgres.')) {
-      console.log('✅ Using Supabase Session mode pooler (supports prepared statements)');
+      console.log('✅ Detected Supabase pooler connection');
+      console.log('⚠️  IMPORTANT: If you see "prepared statement" errors, verify you are using SESSION mode (not Transaction mode)');
+      console.log('   Both modes use similar URLs, but only SESSION mode supports prepared statements');
+      console.log('   Check: Supabase Dashboard > Settings > Database > Connection Pooling');
+      console.log('   Make sure you copied the "Session mode" connection string, not "Transaction mode"');
     } else {
-      console.warn('⚠️  WARNING: Verify you are using SESSION mode pooler, not Transaction mode');
-      console.warn('   Transaction mode does not support prepared statements and will cause Prisma errors');
+      console.warn('⚠️  WARNING: Connection string format may not be Session mode pooler');
       console.warn('   Get Session mode URL from: Supabase Dashboard > Settings > Database > Connection Pooling > Session mode');
     }
   } else if (databaseUrl.includes(':5432')) {

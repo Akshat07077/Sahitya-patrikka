@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
           createdAt: true,
           updatedAt: true,
         },
-      })
+      }),
+      5, // More retries
+      200 // Longer delay
     );
 
     return NextResponse.json({ members });
