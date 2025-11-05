@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/roles';
+import { withRetry } from '@/lib/prisma-retry';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,30 +13,41 @@ export async function GET(req: NextRequest) {
       where.isActive = true;
     }
 
-    const members = await prisma.editorialBoard.findMany({
-      where,
-      orderBy: [
-        { orderIndex: 'asc' },
-        { createdAt: 'asc' },
-      ],
-      select: {
-        id: true,
-        name: true,
-        title: true,
-        affiliation: true,
-        email: true,
-        photoUrl: true,
-        bio: true,
-        isActive: true,
-        orderIndex: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const members = await withRetry(() =>
+      prisma.editorialBoard.findMany({
+        where,
+        orderBy: [
+          { orderIndex: 'asc' },
+          { createdAt: 'asc' },
+        ],
+        select: {
+          id: true,
+          name: true,
+          title: true,
+          affiliation: true,
+          email: true,
+          photoUrl: true,
+          bio: true,
+          isActive: true,
+          orderIndex: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+    );
 
     return NextResponse.json({ members });
   } catch (err: any) {
     console.error('Editorial board fetch error:', err);
+    
+    // Check if it's a prepared statement error
+    if (err?.message?.includes('prepared statement')) {
+      return NextResponse.json({ 
+        error: 'Database connection error. Please verify you are using SESSION mode pooler in Supabase.',
+        details: 'Get Session mode URL from: Supabase Dashboard > Settings > Database > Connection Pooling > Session mode'
+      }, { status: 500 });
+    }
+    
     return NextResponse.json(
       { error: err?.message || 'Failed to fetch editorial board' },
       { status: 500 }
