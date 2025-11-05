@@ -18,17 +18,14 @@ export async function PATCH(_req: NextRequest, ctx: { params: Promise<{ id: stri
     );
     return NextResponse.json({ article });
   } catch (err: any) {
-    if (err?.code === 'P2025') return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (err?.code === 'P2025') return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     
-    // Check if it's a prepared statement error
+    // Log technical details but return user-friendly message
     if (err?.message?.includes('prepared statement')) {
-      return NextResponse.json({ 
-        error: 'Database connection error. Please verify you are using SESSION mode pooler in Supabase.',
-        details: 'Get Session mode URL from: Supabase Dashboard > Settings > Database > Connection Pooling > Session mode'
-      }, { status: 500 });
+      console.error('Prepared statement error detected. Check Supabase connection pooler mode.');
     }
     
-    return NextResponse.json({ error: 'Failed to approve' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to approve article. Please try again.' }, { status: 500 });
   }
 }
 

@@ -31,15 +31,12 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error('Stats error:', err);
     
-    // Check if it's a prepared statement error
+    // Log technical details but return user-friendly message
     if (err?.message?.includes('prepared statement')) {
-      return NextResponse.json({ 
-        error: 'Database connection error. Please verify you are using SESSION mode pooler in Supabase.',
-        details: 'Get Session mode URL from: Supabase Dashboard > Settings > Database > Connection Pooling > Session mode'
-      }, { status: 500 });
+      console.error('Prepared statement error detected. Check Supabase connection pooler mode.');
     }
     
-    return NextResponse.json({ error: 'Failed to load stats' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to load statistics. Please try again.' }, { status: 500 });
   }
 }
 

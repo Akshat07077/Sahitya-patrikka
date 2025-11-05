@@ -9,11 +9,28 @@ type Me = { user: { id: string; firstName: string; lastName: string; email: stri
 export default function Navbar() {
   const [me, setMe] = useState<Me['user'] | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    apiFetch<Me>(`/api/auth/me`).then((r) => setMe(r.user)).catch(() => {});
+    const loadUser = () => {
+      const token = getToken();
+      if (!token) {
+        setMe(null);
+        return;
+      }
+      apiFetch<Me>(`/api/auth/me`).then((r) => setMe(r.user)).catch(() => setMe(null));
+    };
+    
+    loadUser();
+    
+    // Listen for auth events
+    window.addEventListener('auth:login', loadUser);
+    window.addEventListener('auth:logout', loadUser);
+    
+    return () => {
+      window.removeEventListener('auth:login', loadUser);
+      window.removeEventListener('auth:logout', loadUser);
+    };
   }, []);
 
   useEffect(() => {
@@ -28,6 +45,7 @@ export default function Navbar() {
     setToken('');
     localStorage.removeItem('aa_token');
     setMe(null);
+    window.dispatchEvent(new Event('auth:logout'));
     window.location.href = '/';
   }
 
@@ -38,9 +56,22 @@ export default function Navbar() {
       <div className="container-custom px-4 lg:px-6">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-white font-display font-bold text-xl">स</span>
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="w-12 h-12 flex-shrink-0">
+              {!logoError ? (
+                <img
+                  src="/6077998625519766431.jpg"
+                  alt="Sahitya Sanskriti Patrika Logo"
+                  width={48}
+                  height={48}
+                  className="object-contain w-12 h-12 rounded-full"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg gradient-primary flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <span className="text-white font-display font-bold text-xl">स</span>
+                </div>
+              )}
             </div>
             <div className="flex flex-col">
               <span className="font-display text-xl font-bold text-primary-800 leading-tight">

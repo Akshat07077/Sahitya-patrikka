@@ -81,13 +81,44 @@ export default function AdminPage() {
   const [memberError, setMemberError] = useState<string | null>(null);
   const [memberSuccess, setMemberSuccess] = useState<string | null>(null);
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
   useEffect(() => {
-    if (!getToken()) {
-      router.push('/auth/login');
+    const token = getToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      setCheckingAuth(false);
       return;
     }
-    loadDashboardData();
-  }, [router, articleStatus]);
+    
+    // Verify token and role
+    apiFetch<{ user: { role: string } }>(`/api/auth/me`)
+      .then((res) => {
+        if (['ADMIN', 'EDITOR'].includes(res.user.role)) {
+          setIsAuthenticated(true);
+          loadDashboardData();
+        } else {
+          setIsAuthenticated(false);
+          router.push('/');
+        }
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      })
+      .finally(() => {
+        setCheckingAuth(false);
+      });
+  }, [router]);
+  
+  useEffect(() => {
+    if (isAuthenticated && articleStatus) {
+      loadDashboardData();
+    }
+  }, [articleStatus, isAuthenticated]);
 
   useEffect(() => {
     if (activeTab === 'editorial') {
@@ -301,6 +332,91 @@ export default function AdminPage() {
     { id: 'editorial', label: 'Editorial Board', icon: '👥' },
     { id: 'contacts', label: 'Contact Messages', icon: '📧' },
   ];
+
+  // Show login form if not authenticated
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-700 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-gray-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-lg gradient-primary flex items-center justify-center shadow-lg">
+              <span className="text-white font-display font-bold text-2xl">स</span>
+            </div>
+            <h1 className="text-3xl font-display font-bold text-primary-800 mb-2">Admin Access</h1>
+            <p className="text-gray-600">Sign in to access the admin dashboard</p>
+          </div>
+          <div className="card p-8">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setError(null);
+              setLoginLoading(true);
+              try {
+                const res = await apiFetch<{ user: any; token: string }>(`/api/auth/login`, {
+                  method: 'POST',
+                  body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+                });
+                if (!['ADMIN', 'EDITOR'].includes(res.user.role)) {
+                  setError('Access denied. Admin or Editor role required.');
+                  setLoginLoading(false);
+                  return;
+                }
+                setToken(res.token);
+                window.dispatchEvent(new Event('auth:login'));
+                setIsAuthenticated(true);
+                loadDashboardData();
+              } catch (err: any) {
+                setError(err.message || 'Login failed');
+              } finally {
+                setLoginLoading(false);
+              }
+            }} className="space-y-5">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                <input 
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="input w-full text-base" 
+                  type="email" 
+                  placeholder="your.email@example.com"
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                <input 
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="input w-full text-base" 
+                  type="password" 
+                  placeholder="Enter your password"
+                  required 
+                />
+              </div>
+              <button disabled={loginLoading} className="btn btn-primary w-full py-3 text-base font-semibold" type="submit">
+                {loginLoading ? 'Signing in...' : 'Sign in'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">

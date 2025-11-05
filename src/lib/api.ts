@@ -6,6 +6,8 @@ export function getToken(): string | null {
 export function setToken(token: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem('aa_token', token);
+  // Dispatch custom event to notify components of token change
+  window.dispatchEvent(new Event('auth:login'));
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {

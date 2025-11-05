@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from 'react';
-import { apiFetch, setToken } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { apiFetch, setToken, getToken } from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Check if already logged in
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      const redirect = searchParams.get('redirect') || '/';
+      router.push(redirect);
+    }
+  }, [router, searchParams]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +31,16 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       setToken(res.token);
-      router.push('/');
+      
+      // Dispatch event to update navbar immediately
+      window.dispatchEvent(new Event('auth:login'));
+      
+      // Small delay to ensure token is saved
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Redirect to return URL or home
+      const redirect = searchParams.get('redirect') || '/';
+      window.location.href = redirect; // Use window.location for full page reload
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

@@ -42,16 +42,13 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error('Editorial board fetch error:', err);
     
-    // Check if it's a prepared statement error
+    // Log technical details but return user-friendly message
     if (err?.message?.includes('prepared statement')) {
-      return NextResponse.json({ 
-        error: 'Database connection error. Please verify you are using SESSION mode pooler in Supabase.',
-        details: 'Get Session mode URL from: Supabase Dashboard > Settings > Database > Connection Pooling > Session mode'
-      }, { status: 500 });
+      console.error('Prepared statement error detected. Check Supabase connection pooler mode.');
     }
     
     return NextResponse.json(
-      { error: err?.message || 'Failed to fetch editorial board' },
+      { error: 'Failed to load editorial board. Please try again.' },
       { status: 500 }
     );
   }
