@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/roles';
+import { withRetry } from '@/lib/prisma-retry';
 
 export async function GET(req: NextRequest) {
   const guard = requireRole(req, ['ADMIN', 'EDITOR']);
@@ -16,41 +17,28 @@ export async function GET(req: NextRequest) {
     const where: any = {};
     if (status) where.status = status;
 
-    // Retry logic for prepared statement errors (Supabase pooler issue)
-    let items, total;
-    let retries = 3;
-    
-    while (retries > 0) {
-      try {
-        [items, total] = await Promise.all([
-          prisma.article.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              authorName: true,
-              authorEmail: true,
-              createdAt: true,
-            },
-          }),
-          prisma.article.count({ where }),
-        ]);
-        break; // Success, exit retry loop
-      } catch (err: any) {
-        retries--;
-        // Check if it's a prepared statement error
-        if (err?.message?.includes('prepared statement') && retries > 0) {
-          // Wait a bit before retrying (allows connection pool to reset)
-          await new Promise(resolve => setTimeout(resolve, 100));
-          continue;
-        }
-        throw err; // Re-throw if not a prepared statement error or out of retries
-      }
-    }
+    // Use withRetry helper for better prepared statement error handling
+    const [items, total] = await Promise.all([
+      withRetry(() =>
+        prisma.article.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            authorName: true,
+            authorEmail: true,
+            createdAt: true,
+          },
+        }),
+        5, // More retries
+        200 // Longer delay
+      ),
+      withRetry(() => prisma.article.count({ where }), 5, 200),
+    ]);
 
     return NextResponse.json({
       articles: items || [],

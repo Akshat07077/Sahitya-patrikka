@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [logoError, setLogoError] = useState(false);
   
   return (
     <footer className="w-full border-t bg-gradient-to-b from-gray-50 to-white mt-auto">
@@ -9,9 +13,22 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* About */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-white font-display font-bold">स</span>
+            <div className="flex items-center space-x-3">
+              <div className="relative w-16 h-16 flex-shrink-0">
+                {!logoError ? (
+                  <img
+                    src="/6077998625519766431.jpg"
+                    alt="Sahitya Sanskriti Patrika Logo"
+                    width={64}
+                    height={64}
+                    className="object-contain w-16 h-16 rounded-full"
+                    onError={() => setLogoError(true)}
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg gradient-primary flex items-center justify-center">
+                    <span className="text-white font-display font-bold text-xl">स</span>
+                  </div>
+                )}
               </div>
               <span className="font-display font-bold text-primary-800">Sahitya Sanskriti Patrika</span>
             </div>
@@ -72,14 +89,18 @@ export default function Footer() {
           {/* Contact Info */}
           <div>
             <h3 className="font-display font-semibold text-primary-800 mb-4">Get in Touch</h3>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li>For submissions and queries</li>
-              <li>
-                <Link href="/contact" className="hover:text-primary-700 transition-colors">
+            <address className="not-italic space-y-2 text-sm text-gray-600">
+              <div className="leading-relaxed">
+                <p>65, मोहम्मदपुर,</p>
+                <p>पोस्ट ऑफिस हिरणकी,</p>
+                <p>दिल्ली- 110036</p>
+              </div>
+              <div className="pt-2">
+                <Link href="/contact" className="hover:text-primary-700 transition-colors inline-block">
                   Contact Form →
                 </Link>
-              </li>
-            </ul>
+              </div>
+            </address>
           </div>
         </div>
 
