@@ -55,8 +55,18 @@ if (isSupabase && isProduction) {
     // IMPORTANT: Must be SESSION mode (not Transaction mode) for Prisma compatibility
     // Transaction mode doesn't support prepared statements
     const separator = databaseUrl.includes('?') ? '&' : '?';
+    
+    // Add connection parameters to help with prepared statement management
+    const params = [];
     if (!databaseUrl.includes('connection_limit')) {
-      databaseUrl = `${databaseUrl}${separator}connection_limit=1&connect_timeout=10`;
+      params.push('connection_limit=1');
+    }
+    if (!databaseUrl.includes('connect_timeout')) {
+      params.push('connect_timeout=10');
+    }
+    
+    if (params.length > 0) {
+      databaseUrl = `${databaseUrl}${separator}${params.join('&')}`;
     }
     
     // Verify it's using the pooler format (postgres.[ref] format indicates Session mode)
@@ -76,7 +86,7 @@ if (isSupabase && isProduction) {
 }
 
 // Configure Prisma client
-// For Supabase transaction pooler, we need to handle prepared statement conflicts
+// For Supabase pooler, configure connection pooling properly
 const prismaConfig: any = {
   datasources: {
     db: {
@@ -85,6 +95,18 @@ const prismaConfig: any = {
   },
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 };
+
+// For Supabase pooler in production, configure connection pool settings
+// This helps prevent prepared statement conflicts
+if (isSupabase && isProduction && databaseUrl.includes('pooler.supabase.com')) {
+  // Set connection pool timeout and limits
+  // Prisma will manage connections more carefully
+  prismaConfig.__internal = {
+    engine: {
+      connectTimeout: 10000,
+    },
+  };
+}
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient(prismaConfig);
 
