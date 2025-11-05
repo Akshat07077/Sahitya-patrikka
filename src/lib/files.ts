@@ -39,12 +39,9 @@ export async function saveUpload(file: File, subdir: string): Promise<string> {
       throw new Error(`Failed to upload to Supabase Storage: ${error.message}`);
     }
 
-    // Get public URL for the file
-    const { data: urlData } = supabaseAdmin.storage
-      .from(bucket)
-      .getPublicUrl(filename);
-
-    return urlData.publicUrl;
+    // Return our API route URL instead of direct Supabase URL
+    // This allows us to serve files from private buckets
+    return `/api/files/${bucket}/${filename}`;
   }
 
   // Local filesystem only for development

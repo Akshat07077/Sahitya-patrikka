@@ -20,6 +20,28 @@ type Article = {
   createdAt: string;
 };
 
+// Helper function to normalize file URLs
+function normalizeFileUrl(url: string | null): string | null {
+  if (!url) return null;
+  
+  // If it's already our API route, return as is
+  if (url.startsWith('/api/files/')) return url;
+  
+  // If it's a local upload path, add /api prefix
+  if (url.startsWith('/uploads/')) return `/api${url}`;
+  
+  // If it's an old Supabase URL, extract filename and convert to our API route
+  // Pattern: https://[project].supabase.co/storage/v1/object/public/documents/[filename]
+  const supabaseMatch = url.match(/\/storage\/v1\/object\/public\/(documents|payments|editorial-photos)\/(.+)$/);
+  if (supabaseMatch) {
+    const [, bucket, filename] = supabaseMatch;
+    return `/api/files/${bucket}/${filename}`;
+  }
+  
+  // Return as is for other URLs
+  return url;
+}
+
 export default function ArticleDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -133,64 +155,67 @@ export default function ArticleDetailPage() {
               <div className="border-t border-gray-200 pt-8">
                 <h3 className="text-xl font-display font-semibold text-primary-800 mb-4">Article Document</h3>
                 
-                {article.pdfUrl && (
-                  <div className="space-y-4">
-                    <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                      <iframe
-                        src={article.pdfUrl.startsWith('/uploads/') 
-                          ? `/api${article.pdfUrl}` 
-                          : article.pdfUrl}
-                        className="w-full h-[600px] md:h-[800px]"
-                        title="PDF Viewer"
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <a
-                        href={article.pdfUrl.startsWith('/uploads/') 
-                          ? `/api${article.pdfUrl}` 
-                          : article.pdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-outline flex items-center justify-center gap-2"
-                        download
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download PDF
-                      </a>
-                    </div>
-                  </div>
-                )}
+                {(() => {
+                  const pdfUrl = normalizeFileUrl(article.pdfUrl);
+                  const docxUrl = normalizeFileUrl(article.docxUrl);
+                  
+                  return (
+                    <>
+                      {pdfUrl && (
+                        <div className="space-y-4">
+                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                            <iframe
+                              src={pdfUrl}
+                              className="w-full h-[600px] md:h-[800px]"
+                              title="PDF Viewer"
+                            />
+                          </div>
+                          <div className="flex gap-3">
+                            <a
+                              href={pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-outline flex items-center justify-center gap-2"
+                              download
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Download PDF
+                            </a>
+                          </div>
+                        </div>
+                      )}
 
-                {article.docxUrl && (
-                  <div className="space-y-4">
-                    <div className="border border-gray-200 rounded-lg p-8 bg-gray-50 text-center">
-                      <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-gray-600 mb-4">
-                        DOCX files cannot be displayed in the browser. Please download to view.
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      <a
-                        href={article.docxUrl.startsWith('/uploads/') 
-                          ? `/api${article.docxUrl}` 
-                          : article.docxUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-primary flex items-center justify-center gap-2"
-                        download
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download DOCX
-                      </a>
-                    </div>
-                  </div>
-                )}
+                      {docxUrl && (
+                        <div className="space-y-4">
+                          <div className="border border-gray-200 rounded-lg p-8 bg-gray-50 text-center">
+                            <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-gray-600 mb-4">
+                              DOCX files cannot be displayed in the browser. Please download to view.
+                            </p>
+                          </div>
+                          <div className="flex gap-3">
+                            <a
+                              href={docxUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-primary flex items-center justify-center gap-2"
+                              download
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Download DOCX
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {!article.pdfUrl && !article.docxUrl && (
                   <div className="border border-gray-200 rounded-lg p-8 bg-gray-50 text-center">
