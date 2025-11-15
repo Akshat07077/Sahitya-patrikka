@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { apiFetch, getToken } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import mammoth from 'mammoth';
 
 export default function SubmitPage() {
   const router = useRouter();
@@ -16,10 +17,44 @@ export default function SubmitPage() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showGuidelines, setShowGuidelines] = useState(false);
+  const [guidelinesContent, setGuidelinesContent] = useState<string>('');
+  const [loadingGuidelines, setLoadingGuidelines] = useState(false);
 
   useEffect(() => {
     if (!getToken()) router.push('/auth/login');
   }, [router]);
+
+  const loadGuidelines = async () => {
+    setLoadingGuidelines(true);
+    setGuidelinesContent(''); // Clear previous content
+    try {
+      // The document is in Hindi, but we'll support both languages
+      // For now, we load the same document for both languages
+      // In the future, you can have separate files for English and Hindi
+      const filename = 'साहित्य_संस्कृति_त्रैमासिक_हिंदी_पत्रिका.docx';
+      const response = await fetch(`/${encodeURIComponent(filename)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch guidelines document');
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      setGuidelinesContent(result.value);
+    } catch (err) {
+      console.error('Error loading guidelines:', err);
+      setGuidelinesContent('<p class="text-red-600">Error loading guidelines. Please try again later.</p>');
+    } finally {
+      setLoadingGuidelines(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showGuidelines) {
+      loadGuidelines();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGuidelines]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,6 +102,69 @@ export default function SubmitPage() {
       <section className="section-padding">
         <div className="container-custom">
           <div className="max-w-3xl mx-auto">
+            {/* Guidelines Section */}
+            <div className="mb-6 card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-display font-bold text-primary-800 flex items-center gap-2">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Submission Guidelines
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowGuidelines(!showGuidelines)}
+                  className="btn btn-outline text-sm flex items-center gap-2"
+                >
+                  {showGuidelines ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                      Hide Guidelines
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      View Guidelines
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {showGuidelines && (
+                <div className="mt-4 border-t border-gray-200 pt-4">
+                  {loadingGuidelines ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-700 mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Loading guidelines...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="guidelines-content max-h-[600px] overflow-y-auto p-4 bg-gray-50 rounded-lg border border-gray-200"
+                      dangerouslySetInnerHTML={{ __html: guidelinesContent }}
+                    />
+                  )}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <a
+                      href={`/${encodeURIComponent('साहित्य_संस्कृति_त्रैमासिक_हिंदी_पत्रिका.docx')}`}
+                      download
+                      className="inline-flex items-center gap-2 text-sm text-primary-700 hover:text-primary-800 font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download Guidelines Document
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-700">{error}</p>

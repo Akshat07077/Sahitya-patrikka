@@ -10,26 +10,50 @@ export default function Navbar() {
   const [me, setMe] = useState<Me['user'] | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    const loadUser = () => {
+    const loadUser = async () => {
       const token = getToken();
       if (!token) {
         setMe(null);
+        setHasToken(false);
         return;
       }
-      apiFetch<Me>(`/api/auth/me`).then((r) => setMe(r.user)).catch(() => setMe(null));
+      // Immediately update token state to hide login/register buttons
+      setHasToken(true);
+      try {
+        const r = await apiFetch<Me>(`/api/auth/me`);
+        setMe(r.user);
+      } catch {
+        setMe(null);
+        setHasToken(false);
+      }
     };
     
+    // Initial load
+    const token = getToken();
+    setHasToken(!!token);
     loadUser();
     
-    // Listen for auth events
-    window.addEventListener('auth:login', loadUser);
-    window.addEventListener('auth:logout', loadUser);
+    // Listen for auth events - handle immediately
+    const handleAuthLogin = () => {
+      const token = getToken();
+      setHasToken(!!token);
+      loadUser();
+    };
+    
+    const handleAuthLogout = () => {
+      setHasToken(false);
+      setMe(null);
+    };
+    
+    window.addEventListener('auth:login', handleAuthLogin);
+    window.addEventListener('auth:logout', handleAuthLogout);
     
     return () => {
-      window.removeEventListener('auth:login', loadUser);
-      window.removeEventListener('auth:logout', loadUser);
+      window.removeEventListener('auth:login', handleAuthLogin);
+      window.removeEventListener('auth:logout', handleAuthLogout);
     };
   }, []);
 
@@ -45,6 +69,7 @@ export default function Navbar() {
     setToken('');
     localStorage.removeItem('aa_token');
     setMe(null);
+    setHasToken(false);
     window.dispatchEvent(new Event('auth:logout'));
     window.location.href = '/';
   }
@@ -99,23 +124,30 @@ export default function Navbar() {
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-3">
-            {me ? (
-              <>
-                {['ADMIN', 'EDITOR'].includes(me.role) && (
-                  <Link href="/admin" className="hidden sm:inline-block text-sm text-gray-700 hover:text-primary-700 transition-colors">
-                    Admin
-                  </Link>
-                )}
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary-50 rounded-full">
-                  <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-semibold">
-                    {me.firstName[0]}{me.lastName[0]}
+            {hasToken ? (
+              me ? (
+                <>
+                  {['ADMIN', 'EDITOR'].includes(me.role) && (
+                    <Link href="/admin" className="hidden sm:inline-block text-sm text-gray-700 hover:text-primary-700 transition-colors">
+                      Admin
+                    </Link>
+                  )}
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary-50 rounded-full">
+                    <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-semibold">
+                      {me.firstName[0]}{me.lastName[0]}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{me.firstName}</span>
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{me.firstName}</span>
-                </div>
+                  <button onClick={logout} className="btn btn-outline text-sm">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                // Token exists but user data is still loading
                 <button onClick={logout} className="btn btn-outline text-sm">
                   Logout
                 </button>
-              </>
+              )
             ) : (
               <>
                 <Link href="/auth/login" className="btn btn-outline text-sm hidden sm:inline-flex">
