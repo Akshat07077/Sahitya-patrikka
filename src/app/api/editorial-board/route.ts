@@ -15,24 +15,24 @@ export async function GET(req: NextRequest) {
 
     const members = await withRetry(() =>
       prisma.editorialBoard.findMany({
-        where,
-        orderBy: [
-          { orderIndex: 'asc' },
-          { createdAt: 'asc' },
-        ],
-        select: {
-          id: true,
-          name: true,
-          title: true,
-          affiliation: true,
-          email: true,
-          photoUrl: true,
-          bio: true,
-          isActive: true,
-          orderIndex: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+      where,
+      orderBy: [
+        { orderIndex: 'asc' },
+        { createdAt: 'asc' },
+      ],
+      select: {
+        id: true,
+        name: true,
+        title: true,
+        affiliation: true,
+        email: true,
+        photoUrl: true,
+        bio: true,
+        isActive: true,
+        orderIndex: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       }),
       5, // More retries
       200 // Longer delay

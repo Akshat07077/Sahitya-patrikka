@@ -15,9 +15,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     const article = await withRetry(() =>
       prisma.article.update({
-        where: { id },
-        data: { status: 'REJECTED', rejectionReason: reason, reviewDate: new Date() },
-        select: { id: true, status: true, rejectionReason: true },
+      where: { id },
+      data: { status: 'REJECTED', rejectionReason: reason, reviewDate: new Date() },
+      select: { id: true, status: true, rejectionReason: true },
       })
     );
     return NextResponse.json({ article });
