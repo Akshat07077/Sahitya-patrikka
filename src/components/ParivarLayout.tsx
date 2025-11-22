@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { Route } from 'next';
 
 type ParivarLayoutProps = {
   children: React.ReactNode;
@@ -9,14 +10,14 @@ type ParivarLayoutProps = {
   category: string;
 };
 
-const categories: Array<{ key: string; label: string; path: string }> = [
-  { key: 'founder', label: 'संस्थापक', path: '/parivar/founder' },
-  { key: 'patron', label: 'संरक्षक', path: '/parivar/patron' },
-  { key: 'advisory', label: 'परामर्श मंडल', path: '/parivar/advisory' },
-  { key: 'editorial', label: 'संपादक मण्डल', path: '/parivar/editorial' },
-  { key: 'expert', label: 'विशेषज्ञ समिति', path: '/parivar/expert' },
-  { key: 'members', label: 'सक्रिय सहयोगी सदस्य', path: '/parivar/members' },
-  { key: 'technical', label: 'तकनीकी टीम', path: '/parivar/technical' },
+const categories: Array<{ key: string; label: string; path: Route }> = [
+  { key: 'founder', label: 'संस्थापक', path: '/parivar/founder' as Route },
+  { key: 'patron', label: 'संरक्षक', path: '/parivar/patron' as Route },
+  { key: 'advisory', label: 'परामर्श मंडल', path: '/parivar/advisory' as Route },
+  { key: 'editorial', label: 'संपादक मण्डल', path: '/parivar/editorial' as Route },
+  { key: 'expert', label: 'विशेषज्ञ समिति', path: '/parivar/expert' as Route },
+  { key: 'members', label: 'सक्रिय सहयोगी सदस्य', path: '/parivar/members' as Route },
+  { key: 'technical', label: 'तकनीकी टीम', path: '/parivar/technical' as Route },
 ];
 
 export default function ParivarLayout({ children, title, category }: ParivarLayoutProps) {
@@ -70,7 +71,7 @@ export default function ParivarLayout({ children, title, category }: ParivarLayo
                     return (
                       <Link
                         key={cat.key}
-                        href={cat.path}
+                        href={cat.path as any}
                         className={`block w-full px-4 py-3 rounded-lg text-center font-medium transition-all ${
                           isActive
                             ? 'bg-primary-600 text-white'
