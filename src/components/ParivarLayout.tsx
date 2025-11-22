@@ -9,13 +9,13 @@ type ParivarLayoutProps = {
   category: string;
 };
 
-const categories = [
-//   { key: 'founder', label: 'संस्थापक', path: '/parivar/founder' },
+const categories: Array<{ key: string; label: string; path: string }> = [
+  { key: 'founder', label: 'संस्थापक', path: '/parivar/founder' },
   { key: 'patron', label: 'संरक्षक', path: '/parivar/patron' },
   { key: 'advisory', label: 'परामर्श मंडल', path: '/parivar/advisory' },
   { key: 'editorial', label: 'संपादक मण्डल', path: '/parivar/editorial' },
   { key: 'expert', label: 'विशेषज्ञ समिति', path: '/parivar/expert' },
-//   { key: 'members', label: 'सक्रिय सहयोगी सदस्य', path: '/parivar/members' },
+  { key: 'members', label: 'सक्रिय सहयोगी सदस्य', path: '/parivar/members' },
   { key: 'technical', label: 'तकनीकी टीम', path: '/parivar/technical' },
 ];
 
